@@ -148,7 +148,7 @@ class Smiler():
 
             prev_frame = frame
 
-    def find_smiliest_frame(self, frames):
+    def find_smiliest_frame(self, frames, callback=None):
 
         self.interpreter.allocate_tensors()
         input_details = self.interpreter.get_input_details()
@@ -193,6 +193,8 @@ class Smiler():
             if smile_score > best_smile_score:
                 best_smile_score = smile_score
                 best_frame = frame
+                if callback is not None:
+                    callback(best_frame, best_smile_score)
 
         return best_smile_score, best_frame
 
