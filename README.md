@@ -18,7 +18,7 @@ Simple usage:
 % smiler video.mp4 snapshot.jpg
 ```
 
-![Output image of people singing](_imgs/output.jpg "Snapshot of singers")
+![Output image of people singing](https://raw.githubusercontent.com/Choirless/smiler/master/_imgs/output.jpg "Snapshot of singers")
 
 It will do a pre-scan to determine the 5% most changed frames from their previous frame
 in order to just consider them. If you know the threshold of change you want to use you
@@ -64,6 +64,8 @@ for supplying paths to the facial landmark data and model, but
 help functions in the module can help.
 
 ```python
+from choirless_smiler.smiler import Smiler, load_landmarks
+
 landmarks_path = load_landmarks(landmarks_url, cache_dir)
 
 smiler = Smiler(landmarks_path, model_path)
