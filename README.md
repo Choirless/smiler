@@ -24,6 +24,9 @@ It will do a pre-scan to determine the 5% most changed frames from their previou
 in order to just consider them. If you know the threshold of change you want to use you
 can use that. e.g.
 
+The first time smiler runs it will download facial landmark data and store it in `~/.smiler`
+location of this data and cache directory can be specified as arguments
+
 ```
 % smiler video.mp4 snapshot.jpg --threshold 480000
 ```

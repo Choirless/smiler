@@ -27,8 +27,10 @@ import imutils
 DEFAULT_LANDMARKS = "http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2"
 DEFAULT_CACHE_DIR = "~/.smiler"
 
+
 def main():
-    parser = argparse.ArgumentParser(description='Save thumbnail of smiliest frame in video')
+    parser = argparse.ArgumentParser(
+        description='Save thumbnail of smiliest frame in video')
     parser.add_argument('video_fn', type=str,
                         help='filename for video to analyse')
     parser.add_argument('image_fn', type=str,
@@ -36,7 +38,8 @@ def main():
     parser.add_argument('--verbose', action='store_true',
                         help='verbose mode')
     parser.add_argument('--threshold', type=int, default=0,
-                        help='threshold of difference over which we analyse an image')
+                        help='threshold of difference over'
+                             'which we analyse an image')
     parser.add_argument('--landmarks-url', type=str,
                         default=DEFAULT_LANDMARKS,
                         help='url of facial landmark file')
@@ -44,7 +47,7 @@ def main():
                         default=DEFAULT_CACHE_DIR,
                         help='local cache to store the landmark file in')
     parser.add_argument('--quantile', type=float, default=0.95,
-    help='quantile of images to analyse')
+                        help='quantile of images to analyse')
 
     args = parser.parse_args()
 
@@ -56,18 +59,18 @@ def main():
         landmarks_path = load_landmarks(args.landmarks_url, args.cache_dir)
 
         smiler = Smiler(landmarks_path, model_path)
-        
+
         if args.threshold == 0:
             fg = smiler.frame_generator(args.video_fn)
             threshold = smiler.calc_threshold(fg, args.quantile)
         else:
             threshold = args.threshold
-            
+
         fg = smiler.frame_generator(args.video_fn)
         ffg = smiler.filter_frames(fg, threshold)
-            
+
         smile_score, image = smiler.find_smiliest_frame(ffg)
-        
+
         # Write out our "best" frame and clean up
         if args.verbose:
             print("Best smile score:", smile_score)
@@ -92,15 +95,16 @@ def load_landmarks(landmarks_url, cache_dir):
                 f.write(req.content)
 
     return landmarks_path
-            
+
+
 class Smiler():
     def __init__(self, landmarks_path, model_path):
-        
+
         self.interpreter = tflite.Interpreter(model_path=str(model_path))
         self.detector = dlib.get_frontal_face_detector()
         self.predictor = dlib.shape_predictor(str(landmarks_path))
         self.face_aligner = FaceAligner(self.predictor, desiredFaceWidth=256)
-            
+
     def frame_generator(self, video_fn):
         cap = cv2.VideoCapture(video_fn)
 
@@ -130,7 +134,6 @@ class Smiler():
             prev_frame = frame
 
         return int(np.quantile(counts, q))
-
 
     def filter_frames(self, frames, threshold):
         prev_frame = next(frames)
@@ -165,9 +168,11 @@ class Smiler():
                 face_aligned = face_aligned.reshape(1, 256, 256, 3)
                 face_aligned = face_aligned.astype(np.float32) / 255.0
 
-                self.interpreter.set_tensor(input_details[0]['index'], face_aligned)
+                self.interpreter.set_tensor(input_details[0]['index'],
+                                            face_aligned)
                 self.interpreter.invoke()
-                pred = self.interpreter.get_tensor(output_details[0]['index'])[0][0]
+                pred = self.interpreter.get_tensor(
+                    output_details[0]['index'])[0][0]
 
                 smile_score += pred
 
@@ -191,6 +196,6 @@ class Smiler():
 
         return best_smile_score, best_frame
 
+
 if __name__ == '__main__':
     main()
-    
