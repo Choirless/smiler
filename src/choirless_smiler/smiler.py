@@ -17,12 +17,14 @@ import numpy as np
 
 import requests
 
+from tqdm import tqdm
+
 from tensorflow import lite as tflite
 
 from imutils.face_utils import FaceAligner
 from imutils.face_utils import rect_to_bb
 import imutils
-
+import imutils.video
 
 DEFAULT_LANDMARKS = "http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2"
 DEFAULT_CACHE_DIR = "~/.smiler"
@@ -51,20 +53,22 @@ def main():
 
     args = parser.parse_args()
 
-    if args.verbose:
-        print("threshold", threshold)
-
     with pkg_resources.path('choirless_smiler', 'smile_detector.tflite') as model_path:
 
         landmarks_path = load_landmarks(args.landmarks_url, args.cache_dir)
 
-        smiler = Smiler(landmarks_path, model_path)
+        smiler = Smiler(landmarks_path, model_path, verbose=args.verbose)
+        if args.verbose:
+            smiler.total_frames = imutils.video.count_frames(args.video_fn)
 
         if args.threshold == 0:
             fg = smiler.frame_generator(args.video_fn)
             threshold = smiler.calc_threshold(fg, args.quantile)
         else:
             threshold = args.threshold
+
+        if args.verbose:
+            print("threshold", threshold)
 
         fg = smiler.frame_generator(args.video_fn)
         ffg = smiler.filter_frames(fg, threshold)
@@ -73,7 +77,7 @@ def main():
 
         # Write out our "best" frame and clean up
         if args.verbose:
-            print("Best smile score:", smile_score)
+            print(f"Best smile score: {smile_score:.2f}")
         cv2.imwrite(args.image_fn, image)
 
 
@@ -98,12 +102,14 @@ def load_landmarks(landmarks_url, cache_dir):
 
 
 class Smiler():
-    def __init__(self, landmarks_path, model_path):
+    def __init__(self, landmarks_path, model_path, verbose=False):
 
         self.interpreter = tflite.Interpreter(model_path=str(model_path))
         self.detector = dlib.get_frontal_face_detector()
         self.predictor = dlib.shape_predictor(str(landmarks_path))
         self.face_aligner = FaceAligner(self.predictor, desiredFaceWidth=256)
+        self.verbose = verbose
+        self.total_frames = None
 
     def frame_generator(self, video_fn):
         cap = cv2.VideoCapture(video_fn)
@@ -123,6 +129,14 @@ class Smiler():
     def calc_threshold(self, frames, q=0.95):
         prev_frame = next(frames)
         counts = []
+
+        if self.verbose:
+            if self.total_frames is not None:
+                frames = tqdm(frames, total=self.total_frames)
+            else:
+                frames = tqdm(frames)
+            frames.set_description("Calculating threshold")
+
         for frame in frames:
             # Calculate the pixel difference between the current
             # frame and the previous one
@@ -133,6 +147,7 @@ class Smiler():
             counts.append(non_zero_count)
             prev_frame = frame
 
+        self.total_frames = int(self.total_frames * (1 - q))
         return int(np.quantile(counts, q))
 
     def filter_frames(self, frames, threshold):
@@ -181,6 +196,13 @@ class Smiler():
         best_smile_score = 0
         best_frame = next(frames)
 
+        if self.verbose:
+            if self.total_frames is not None:
+                frames = tqdm(frames, total=self.total_frames)
+            else:
+                frames = tqdm(frames)
+            frames.set_description("Finding smiliest face")
+
         for frame in frames:
             # Convert the frame to grayscale
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -195,6 +217,8 @@ class Smiler():
                 best_frame = frame
                 if callback is not None:
                     callback(best_frame, best_smile_score)
+                if self.verbose:
+                    tqdm.write(f"New smiliest score: {best_smile_score:.2f}")
 
         return best_smile_score, best_frame
 

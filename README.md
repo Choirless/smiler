@@ -58,6 +58,10 @@ optional arguments:
   --quantile QUANTILE   quantile of images to analyse
 ```
 
+## Verbose mode
+If you specify the `--verbose` flag to the CLI then smiler will
+print out a progress bar as it goes along to show you have it's doing.
+
 ## Use as a library
 Smiler can be imported and used in a library. You are responsible
 for supplying paths to the facial landmark data and model, but
