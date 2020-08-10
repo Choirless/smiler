@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="choirless_smiler",
-    version="1.2.0",
+    version="1.2.1",
     author="Matt Hamilton",
     author_email="mh@quernus.co.uk",
     description="A library and command to extract the smiliest image from a video",
@@ -27,6 +27,7 @@ setuptools.setup(
         "dlib",
         "imutils",
         "opencv-python",
+        "tqdm",
     ],
     entry_points={
         "console_scripts": [
